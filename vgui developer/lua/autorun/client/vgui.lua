@@ -201,12 +201,12 @@ VguiFunctions = {
 				
 		end,
 	["Delete"] = function(self)
-			Print(self:GetParent():GetParent():GetParent().Derma)
+			//Print(self:GetParent():GetParent():GetParent().Derma)
 			self = self:GetParent():GetParent()
 			if self.Derma.ClassName~="DFrame" then
 				self:GetParent().DChildren[self]=nil
 			else
-				Print(self.DChildren)
+				//Print(self.DChildren)
 			end
 			self:Remove()
 		end,
@@ -256,9 +256,9 @@ function OnClick(self,type)
 		self:MouseCapture( true )
 		return
 	end
-	Print(self:GetTable())
+	//Print(self:GetTable())
 	if !VguiOptions[self.ClassName] then
-		Print(self:GetTable())
+		//Print(self:GetTable())
 		if self.Derma.ClassName then self.ClassName = self.Derma.ClassName
 		else return end
 	end
