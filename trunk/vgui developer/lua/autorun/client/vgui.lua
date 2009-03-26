@@ -1,4 +1,4 @@
-local currentFrame,VguiList,VguiOptions,VguiFunctions,OnClick,OnGetFocus,CreateObject
+local currentFrame,VguiList,VguiOptions,VguiFunctions,OnClick,OnGetFocus,CreateObject,Clamp
 VguiList = {
 	DFrame = {}
 }
@@ -6,7 +6,7 @@ VguiOptions = {
 	DFrame = {"Resize","Delete","SetTitle","Add Button","Add Label","Add CheckBox","Add CheckBoxLabel","Add Collapsible","Add ListView"},
 	DButton = {"Resize","Delete","SetText","Resize to Contents"},
 	DCheckBox = {"Resize","Delete","Toggle"},
-	DLabel = {"Resize","Delete","SetText"},
+	DLabel = {"Resize","Delete","SetText","Resize to Contents"},
 	DListView = {"Resize","Delete", "Add Column"},
 	DCollapsibleCategory = {"Resize","Delete"},
 }
@@ -51,8 +51,10 @@ function CreateObject(self,type)
 		if (!self.Dragging) then return end
 		local x = gui.MouseX() - self.Dragging[1]
 		local y = gui.MouseY() - self.Dragging[2]
-		//x = math.Clamp( x, 0, self:GetParent():GetWide() - self:GetWide() )
-		//y = math.Clamp( y, 0, self:GetParent():GetTall() - self:GetTall() )
+		if Clamp then
+			x = math.Clamp( x, 0, self:GetParent():GetWide() - self:GetWide() )
+			y = math.Clamp( y, 0, self:GetParent():GetTall() - self:GetTall() )
+		end
 		self:SetPos( x, y )
 	end
 	return index
@@ -272,7 +274,7 @@ function OnClick(self,type)
 end
 
 function openVgui(player,command,args)
-/*
+
 	if panel && type(panel)=="Panel" && panel:IsValid() then
 		panel:Close()
 	end
@@ -285,13 +287,20 @@ function openVgui(player,command,args)
 	panel:SetSizable(false)
 	panel:MakePopup()
 	panel:SetTitle("Lua Editor")
-	panel:SetSize(ScrW(),100)
+	panel:SetSize(ScrW(),50)
+
+	local CheckBox = vgui.Create("DCheckBoxLabel", panel)
+	CheckBox:SetPos(100,30)
+	CheckBox:SetText("Clamp")
+	CheckBox.OnChange = function(self)
+		Clamp = self:GetValue()
+	end
 
 	local Button = vgui.Create( "DButton", panel )
-	Button:SetPos(10,30)
+	Button:SetPos(10,25)
 	Button:SetText("Panel")
 	Button.DoClick = function(self)
-*/
+
 		local dframe = vgui.Create("DFrame")
 		if #VguiList.DFrame then
 			VguiList.DFrame[#VguiList.DFrame+1] = dframe
@@ -312,5 +321,5 @@ function openVgui(player,command,args)
 		Print(dframe)
 		*/
 		dframe.OnMousePressed = OnClick
-	//end
+	end
 end
