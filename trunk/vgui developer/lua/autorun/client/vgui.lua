@@ -1,9 +1,10 @@
-local currentFrame,VguiList,VguiOptions,VguiFunctions,OnClick,OnGetFocus,CreateObject,Clamp
+local currentFrame,VguiList,VguiOptions,VguiFunctions,OnClick,OnGetFocus,CreateObject
+local Clamp = true
 VguiList = {
 	DFrame = {}
 }
 VguiOptions = {
-	DFrame = {"Resize","Delete","SetTitle","Add Button","Add Label","Add CheckBox","Add CheckBoxLabel","Add Collapsible","Add ListView"},
+	DFrame = {"Resize","Delete","SetTitle","Add Button","Add Label","Add CheckBox","Add Collapsible","Add ListView"},
 	DButton = {"Resize","Delete","SetText","Resize to Contents"},
 	DCheckBox = {"Resize","Delete","Toggle"},
 	DLabel = {"Resize","Delete","SetText","Resize to Contents"},
@@ -259,8 +260,8 @@ function OnClick(self,type)
 	//Print(self:GetTable())
 	if !VguiOptions[self.ClassName] then
 		//Print(self:GetTable())
-		if self.Derma.ClassName then self.ClassName = self.Derma.ClassName
-		else return end
+		if self.Derma.ClassName then self.ClassName = self.Derma.ClassName end
+		if !VguiOptions[self.ClassName] then return end
 	end
 	self.Menu = vgui.Create("DMenu",self)
 	self.Menu.XClick = gui.MouseX()
@@ -292,8 +293,9 @@ function openVgui(player,command,args)
 	local CheckBox = vgui.Create("DCheckBoxLabel", panel)
 	CheckBox:SetPos(100,30)
 	CheckBox:SetText("Clamp")
+	CheckBox:SetValue(Clamp)
 	CheckBox.OnChange = function(self)
-		Clamp = self:GetValue()
+		Clamp = self:GetChecked()
 	end
 
 	local Button = vgui.Create( "DButton", panel )
