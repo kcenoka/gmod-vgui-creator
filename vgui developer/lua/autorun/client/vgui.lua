@@ -1,15 +1,15 @@
 local currentFrame,VguiList,VguiOptions,VguiFunctions,OnClick,OnGetFocus,CreateObject
-local Clamp = true
+local Clamp,SaveFile = true,"filename"
 VguiList = {
 	DFrame = {}
 }
 VguiOptions = {
-	DFrame = {"Resize","Delete","SetTitle","Add Button","Add Label","Add CheckBox","Add Collapsible","Add ListView"},
-	DButton = {"Resize","Delete","SetText","Resize to Contents"},
-	DCheckBox = {"Resize","Delete","Toggle"},
-	DLabel = {"Resize","Delete","SetText","Resize to Contents"},
-	DListView = {"Resize","Delete", "Add Column"},
-	DCollapsibleCategory = {"Resize","Delete"},
+	DFrame = {"Resize","Reposition","Delete","Save","SetTitle","Add Button","Add Label","Add CheckBox","Add Collapsible","Add ListView"},
+	DButton = {"Resize","Reposition","Delete","SetText","Resize to Contents"},
+	DCheckBox = {"Resize","Reposition","Delete","Toggle"},
+	DLabel = {"Resize","Reposition","Delete","SetText","Resize to Contents"},
+	DListView = {"Resize","Delete","Reposition","Add Column"},
+	DCollapsibleCategory = {"Resize","Reposition","Delete"},
 }
 
 OnGetFocus = function(self)
@@ -122,6 +122,97 @@ VguiFunctions = {
 			end
 				
 		end,
+	["Reposition"] = function(self)
+			local dframe = vgui.Create("DFrame")
+			dframe.owner = self:GetParent():GetParent()
+			dframe:SetSize(140,90)
+			dframe:MakePopup()
+			dframe:Center()
+			dframe:ShowCloseButton(true)
+			dframe:SetDraggable(true)
+			dframe:SetTitle("Reposition")
+			dframe.Paint = function(self)
+				surface.SetDrawColor( 80, 80, 80, 255 )
+				surface.DrawRect( 0, 0, self:GetWide(),self:GetTall() )
+			end
+
+			local label = vgui.Create("DLabel",dframe)
+			label:SetPos(5,30)
+			label:SetText("X:")
+			label = vgui.Create("DLabel",dframe)
+			label:SetPos(5,60)
+			label:SetText("Y:")
+
+			dframe.PromptX = vgui.Create("DTextEntry",dframe)
+			dframe.PromptX:SetPos(17,30)
+			dframe.PromptX:SetSize(75,20)
+			dframe.PromptX:SetText(self:GetParent():GetParent().x)
+			dframe.PromptX:SetEditable(true)
+			dframe.PromptX:SetMultiline(false)
+			dframe.PromptX:RequestFocus()
+			dframe.PromptX.OnGetFocus = OnGetFocus
+			dframe.PromptX.OnKeyCodeTyped = function(self,key)
+				if key==64 then
+					self:GetParent().Ok:DoClick()
+				end
+			end
+
+			dframe.PromptY = vgui.Create("DTextEntry",dframe)
+			dframe.PromptY:SetPos(17,60)
+			dframe.PromptY:SetSize(75,20)
+			dframe.PromptY:SetText(self:GetParent():GetParent().y)
+			dframe.PromptY:SetEditable(true)
+			dframe.PromptY:SetMultiline(false)
+			dframe.PromptY.OnKeyCodeTyped = function(self,key)
+				if key==64 then
+					self:GetParent().Ok:DoClick()
+				end
+			end
+
+			dframe.Ok = vgui.Create("DButton",dframe)
+			dframe.Ok:SetSize(40,50)
+			dframe.Ok:SetText("SetPos")
+			dframe.Ok:SetPos(95,30)
+			dframe.Ok.DoClick = function(self)
+				self = self:GetParent()
+				local x,y = tonumber(self.PromptX:GetValue()),tonumber(self.PromptY:GetValue())
+				if Clamp then
+					x = math.Clamp( x, 0, self:GetParent():GetWide() - self:GetWide() )
+					y = math.Clamp( y, 0, self:GetParent():GetTall() - self:GetTall() )
+				end
+				self.owner:SetPos(x,y)
+			end
+				
+		end,
+	["Save"] = function(self)
+			self = self:GetParent():GetParent()
+			local posx,posy = self:GetPos()
+			local text = "local DFrame = vgui.Create('DFrame')\r\nDFrame:SetPos("..posx..","..posy..")\r\nDFrame:SetSize("..self:GetWide()..","..self:GetTall()..")\r\nDFrame:SetTitle('"..self.lblTitle:GetValue().."')\r\nDFrame:ShowCloseButton(true)\r\n\r\n"
+			local class
+			if self.DChildren then
+				for _,v in pairs(self.DChildren)do
+					if v.ClassName then
+						class=v.ClassName
+					elseif v.Derma.ClassName then
+						class=v.Derma.ClassName
+					end
+					posx,posy = v:GetPos()
+					text = text.."local "..class.." = vgui.Create('"..class.."',DFrame)\r\n"..class..":SetPos("..posx..","..posy..")\r\n"..class..":SetSize("..v:GetWide()..","..v:GetTall()..")\r\n"
+					if class=="DButton" then
+						text = text..class..":SetText('"..v:GetValue().."')\r\n\r\n"
+					elseif class=="DCheckBox" then
+						text = text..class..":SetValue("..tostring(v:GetChecked())..")\r\n\r\n"
+					elseif class=="DLabel" then
+						text = text..class..":SetText('"..v:GetValue().."')\r\n\r\n"
+					end
+				end
+			end
+			local filen = SaveFile
+			filen=string.gsub(filen,"%p","_")
+			if string.Right(filen,4)!=".txt" then filen=filen..".txt" end
+			file.Write("vguicreator/"..filen,text)
+		end,
+
 	["SetTitle"] = function(self)
 			local dframe = vgui.Create("DFrame")
 			dframe.owner = self:GetParent():GetParent()
@@ -296,6 +387,14 @@ function openVgui(player,command,args)
 	CheckBox:SetValue(Clamp)
 	CheckBox.OnChange = function(self)
 		Clamp = self:GetChecked()
+	end
+
+	local Text = vgui.Create("DTextEntry",panel)
+	Text:SetPos(180,26)
+	Text:SetSize(100,20)
+	Text:SetText(SaveFile)
+	Text.OnTextChanged = function(self)
+		SaveFile=self:GetValue()
 	end
 
 	local Button = vgui.Create( "DButton", panel )
