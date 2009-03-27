@@ -1,16 +1,41 @@
-local currentFrame,VguiList,VguiOptions,VguiFunctions,OnClick,OnGetFocus,CreateObject
-local Clamp,SaveFile = true,"filename"
+local currentFrame,VguiList,VguiOptions,VguiFunctions,OnClick,OnGetFocus,CreateObject,DupeDerma
+local SaveFile = "filename"
+local dupe_xoff = CreateClientConVar("vgui_creator_xoff", "10", true, false)
+local dupe_yoff = CreateClientConVar("vgui_creator_yoff", "10", true, false)
+local Clamp = CreateClientConVar("vgui_creator_Clamp", "1", true, false)
 VguiList = {
 	DFrame = {}
 }
 VguiOptions = {
-	DFrame = {"Resize","Reposition","Delete","Save","SetTitle","Add Button","Add Label","Add CheckBox","Add Collapsible","Add ListView"},
-	DButton = {"Resize","Reposition","Delete","SetText","Resize to Contents"},
-	DCheckBox = {"Resize","Reposition","Delete","Toggle"},
-	DLabel = {"Resize","Reposition","Delete","SetText","Resize to Contents"},
-	DListView = {"Resize","Delete","Reposition","Add Column"},
-	DCollapsibleCategory = {"Resize","Reposition","Delete"},
+	DFrame = {"Resize","Reposition","Delete","Save","SetTitle","CenterX","CenterY","Add Button","Add Label","Add CheckBox","Add Collapsible","Add ListView"},
+	DButton = {"Resize","Reposition","Delete","Duplicate","CenterX","CenterY","SetText","Resize to Contents"},
+	DCheckBox = {"Resize","Reposition","Delete","Duplicate","CenterX","CenterY","Toggle"},
+	DLabel = {"Resize","Reposition","Delete","Duplicate","CenterX","CenterY","SetText","Resize to Contents"},
+	DListView = {"Resize","Delete","Reposition","Duplicate","CenterX","CenterY","Add Column"},
+	DCollapsibleCategory = {"Resize","Reposition","Delete","CenterX","CenterY"},
 }
+
+DupeDerma = function(self)
+	local oldself = self
+	self = self:GetParent():GetParent()
+	local class = self.ClassName
+	if !class then
+		class = self.Derma.ClassName
+	end
+	local index = CreateObject(oldself,class,true)
+	local x,y = self:GetPos()
+	index:SetPos(x+dupe_xoff:GetInt(),y+dupe_yoff:GetInt())
+	index:SetSize(self:GetWide(),self:GetTall())
+	if class=="DButton" or class=="DLabel" then
+		index:SetText(self:GetValue())
+		if class=="DLabel" then
+			index:SetMouseInputEnabled(true)
+		end
+	elseif class=="DCheckBox" then
+		index:SetValue(index:GetChecked())
+	end
+	return index
+end
 
 OnGetFocus = function(self)
 	self = self:GetParent()
@@ -26,13 +51,13 @@ OnGetFocus = function(self)
 	end
 end
 
-function CreateObject(self,type)
+function CreateObject(self,type,dupe)
 	local oldself = self
 	self = self:GetParent():GetParent()
+	if dupe then self = self:GetParent() end
 	if !self.DChildren then self.DChildren = {} end
 	local index = vgui.Create(type,self)
 	self.DChildren[index] = index
-	//Print(self:GetParent():GetTable())
 	local Panel = oldself:GetParent()
 	index:SetPos(Panel.XClick-Panel.PanelX,Panel.YClick-Panel.PanelY)
 	index.OnMousePressed = function(self,type)
@@ -52,7 +77,7 @@ function CreateObject(self,type)
 		if (!self.Dragging) then return end
 		local x = gui.MouseX() - self.Dragging[1]
 		local y = gui.MouseY() - self.Dragging[2]
-		if Clamp then
+		if Clamp:GetBool() then
 			x = math.Clamp( x, 0, self:GetParent():GetWide() - self:GetWide() )
 			y = math.Clamp( y, 0, self:GetParent():GetTall() - self:GetTall() )
 		end
@@ -176,7 +201,7 @@ VguiFunctions = {
 			dframe.Ok.DoClick = function(self)
 				self = self:GetParent()
 				local x,y = tonumber(self.PromptX:GetValue()),tonumber(self.PromptY:GetValue())
-				if Clamp then
+				if Clamp:GetBool() then
 					x = math.Clamp( x, 0, self:GetParent():GetWide() - self:GetWide() )
 					y = math.Clamp( y, 0, self:GetParent():GetTall() - self:GetTall() )
 				end
@@ -212,7 +237,6 @@ VguiFunctions = {
 			if string.Right(filen,4)!=".txt" then filen=filen..".txt" end
 			file.Write("vguicreator/"..filen,text)
 		end,
-
 	["SetTitle"] = function(self)
 			local dframe = vgui.Create("DFrame")
 			dframe.owner = self:GetParent():GetParent()
@@ -287,20 +311,25 @@ VguiFunctions = {
 			dframe.Ok.DoClick = function(self)
 				self = self:GetParent()
 				local text = self.Prompt:GetValue()
-				//Print(text)
 				self.owner:SetText(text)
 			end
 				
 		end,
 	["Delete"] = function(self)
-			//Print(self:GetParent():GetParent():GetParent().Derma)
 			self = self:GetParent():GetParent()
 			if self.Derma.ClassName~="DFrame" then
 				self:GetParent().DChildren[self]=nil
-			else
-				//Print(self.DChildren)
 			end
 			self:Remove()
+		end,
+	["Duplicate"] = function(self)
+			DupeDerma(self):GetParent()
+		end,
+	["CenterX"] = function(self)
+			self:GetParent():GetParent():CenterHorizontal()
+		end,
+	["CenterY"] = function(self)
+			self:GetParent():GetParent():CenterVertical()
 		end,
 	["Add Button"] = function(self)
 			CreateObject(self,"DButton")
@@ -348,9 +377,7 @@ function OnClick(self,type)
 		self:MouseCapture( true )
 		return
 	end
-	//Print(self:GetTable())
 	if !VguiOptions[self.ClassName] then
-		//Print(self:GetTable())
 		if self.Derma.ClassName then self.ClassName = self.Derma.ClassName end
 		if !VguiOptions[self.ClassName] then return end
 	end
@@ -384,10 +411,8 @@ function openVgui(player,command,args)
 	local CheckBox = vgui.Create("DCheckBoxLabel", panel)
 	CheckBox:SetPos(100,30)
 	CheckBox:SetText("Clamp")
-	CheckBox:SetValue(Clamp)
-	CheckBox.OnChange = function(self)
-		Clamp = self:GetChecked()
-	end
+	CheckBox:SetValue(Clamp:GetBool())
+	CheckBox:SetConVar( "vgui_creator_Clamp" )
 
 	local Text = vgui.Create("DTextEntry",panel)
 	Text:SetPos(180,26)
@@ -396,6 +421,24 @@ function openVgui(player,command,args)
 	Text.OnTextChanged = function(self)
 		SaveFile=self:GetValue()
 	end
+
+	local slider = vgui.Create( /*"DNumberWang"*/"DNumSlider", panel )
+	slider:SetPos( 300,26 )
+	slider:SetSize( 110, 20 )
+	slider:SetText( "DupeX Offset" )
+	slider:SetMin( -200 )
+	slider:SetMax( 200 )
+	slider:SetDecimals( 0 )
+	slider:SetConVar( "vgui_creator_xoff" )
+
+	local slider = vgui.Create( /*"DNumberWang"*/"DNumSlider", panel )
+	slider:SetPos( 425,26 )
+	slider:SetSize( 110, 20 )
+	slider:SetText( "DupeY Offset" )
+	slider:SetMin( -200 )
+	slider:SetMax( 200 )
+	slider:SetDecimals( 0 )
+	slider:SetConVar( "vgui_creator_yoff" )
 
 	local Button = vgui.Create( "DButton", panel )
 	Button:SetPos(10,25)
