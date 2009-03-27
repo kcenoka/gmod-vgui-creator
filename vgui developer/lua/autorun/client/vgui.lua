@@ -7,12 +7,12 @@ VguiList = {
 	DFrame = {}
 }
 VguiOptions = {
-	DFrame = {"Resize","Reposition","Delete","Save","SetTitle","CenterX","CenterY","Add Button","Add Label","Add CheckBox","Add Collapsible","Add ListView"},
-	DButton = {"Resize","Reposition","Delete","Duplicate","CenterX","CenterY","SetText","Resize to Contents"},
-	DCheckBox = {"Resize","Reposition","Delete","Duplicate","CenterX","CenterY","Toggle"},
-	DLabel = {"Resize","Reposition","Delete","Duplicate","CenterX","CenterY","SetText","Resize to Contents"},
-	DListView = {"Resize","Delete","Reposition","Duplicate","CenterX","CenterY","Add Column"},
-	DCollapsibleCategory = {"Resize","Reposition","Delete","CenterX","CenterY"},
+	DFrame = {{Name="Set","Size","Position","Title"},"Delete","Save",{Name="Center","CenterX","CenterY","Center"},{Name="Add","Button","Label","CheckBox","Collapsible","ListView"}},
+	DButton = {{Name="Set","Size","Position","Text"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Resize to Contents"},
+	DCheckBox = {{Name="Set","Size","Position","Toggle"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"}},
+	DLabel = {{Name="Set","Size","Position","Text"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Resize to Contents"},
+	DListView = {{Name="Set","Size","Position"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Add Column"},
+	DCollapsibleCategory = {{Name="Set","Size","Position","Title"},"Delete",{Name="Center","CenterX","CenterY","Center"}},
 }
 
 DupeDerma = function(self)
@@ -23,8 +23,7 @@ DupeDerma = function(self)
 		class = self.Derma.ClassName
 	end
 	local index = CreateObject(oldself,class,true)
-	local x,y = self:GetPos()
-	index:SetPos(x+dupe_xoff:GetInt(),y+dupe_yoff:GetInt())
+	index:SetPos(self.x+dupe_xoff:GetInt(),self.y+dupe_yoff:GetInt())
 	index:SetSize(self:GetWide(),self:GetTall())
 	if class=="DButton" or class=="DLabel" then
 		index:SetText(self:GetValue())
@@ -87,9 +86,9 @@ function CreateObject(self,type,dupe)
 end
 
 VguiFunctions = {
-	["Resize"] = function(self)
+	["Size"] = function(self)
 			local dframe = vgui.Create("DFrame")
-			dframe.owner = self:GetParent():GetParent()
+			dframe.owner = self:GetParent():GetParent():GetParent()
 			dframe:SetSize(140,90)
 			dframe:MakePopup()
 			dframe:Center()
@@ -111,7 +110,7 @@ VguiFunctions = {
 			dframe.PromptX = vgui.Create("DTextEntry",dframe)
 			dframe.PromptX:SetPos(17,30)
 			dframe.PromptX:SetSize(75,20)
-			dframe.PromptX:SetText(self:GetParent():GetParent():GetWide())
+			dframe.PromptX:SetText(dframe.owner:GetWide())
 			dframe.PromptX:SetEditable(true)
 			dframe.PromptX:SetMultiline(false)
 			dframe.PromptX:RequestFocus()
@@ -125,7 +124,7 @@ VguiFunctions = {
 			dframe.PromptY = vgui.Create("DTextEntry",dframe)
 			dframe.PromptY:SetPos(17,60)
 			dframe.PromptY:SetSize(75,20)
-			dframe.PromptY:SetText(self:GetParent():GetParent():GetTall())
+			dframe.PromptY:SetText(dframe.owner:GetTall())
 			dframe.PromptY:SetEditable(true)
 			dframe.PromptY:SetMultiline(false)
 			dframe.PromptY.OnKeyCodeTyped = function(self,key)
@@ -147,9 +146,9 @@ VguiFunctions = {
 			end
 				
 		end,
-	["Reposition"] = function(self)
+	["Position"] = function(self)
 			local dframe = vgui.Create("DFrame")
-			dframe.owner = self:GetParent():GetParent()
+			dframe.owner = self:GetParent():GetParent():GetParent()
 			dframe:SetSize(140,90)
 			dframe:MakePopup()
 			dframe:Center()
@@ -171,7 +170,7 @@ VguiFunctions = {
 			dframe.PromptX = vgui.Create("DTextEntry",dframe)
 			dframe.PromptX:SetPos(17,30)
 			dframe.PromptX:SetSize(75,20)
-			dframe.PromptX:SetText(self:GetParent():GetParent().x)
+			dframe.PromptX:SetText(dframe.owner.x)
 			dframe.PromptX:SetEditable(true)
 			dframe.PromptX:SetMultiline(false)
 			dframe.PromptX:RequestFocus()
@@ -185,7 +184,7 @@ VguiFunctions = {
 			dframe.PromptY = vgui.Create("DTextEntry",dframe)
 			dframe.PromptY:SetPos(17,60)
 			dframe.PromptY:SetSize(75,20)
-			dframe.PromptY:SetText(self:GetParent():GetParent().y)
+			dframe.PromptY:SetText(dframe.owner.y)
 			dframe.PromptY:SetEditable(true)
 			dframe.PromptY:SetMultiline(false)
 			dframe.PromptY.OnKeyCodeTyped = function(self,key)
@@ -211,8 +210,7 @@ VguiFunctions = {
 		end,
 	["Save"] = function(self)
 			self = self:GetParent():GetParent()
-			local posx,posy = self:GetPos()
-			local text = "local DFrame = vgui.Create('DFrame')\r\nDFrame:SetPos("..posx..","..posy..")\r\nDFrame:SetSize("..self:GetWide()..","..self:GetTall()..")\r\nDFrame:SetTitle('"..self.lblTitle:GetValue().."')\r\nDFrame:ShowCloseButton(true)\r\n\r\n"
+			local text = "local DFrame = vgui.Create('DFrame')\r\nDFrame:SetPos("..self.x..","..self.y..")\r\nDFrame:SetSize("..self:GetWide()..","..self:GetTall()..")\r\nDFrame:SetTitle('"..self.lblTitle:GetValue().."')\r\nDFrame:ShowCloseButton(true)\r\n\r\n"
 			local class
 			if self.DChildren then
 				for _,v in pairs(self.DChildren)do
@@ -221,8 +219,7 @@ VguiFunctions = {
 					elseif v.Derma.ClassName then
 						class=v.Derma.ClassName
 					end
-					posx,posy = v:GetPos()
-					text = text.."local "..class.." = vgui.Create('"..class.."',DFrame)\r\n"..class..":SetPos("..posx..","..posy..")\r\n"..class..":SetSize("..v:GetWide()..","..v:GetTall()..")\r\n"
+					text = text.."local "..class.." = vgui.Create('"..class.."',DFrame)\r\n"..class..":SetPos("..v.x..","..v.y..")\r\n"..class..":SetSize("..v:GetWide()..","..v:GetTall()..")\r\n"
 					if class=="DButton" then
 						text = text..class..":SetText('"..v:GetValue().."')\r\n\r\n"
 					elseif class=="DCheckBox" then
@@ -237,9 +234,9 @@ VguiFunctions = {
 			if string.Right(filen,4)!=".txt" then filen=filen..".txt" end
 			file.Write("vguicreator/"..filen,text)
 		end,
-	["SetTitle"] = function(self)
+	["Title"] = function(self)
 			local dframe = vgui.Create("DFrame")
-			dframe.owner = self:GetParent():GetParent()
+			dframe.owner = self:GetParent():GetParent():GetParent()
 			dframe:SetSize(140,60)
 			dframe:MakePopup()
 			dframe:Center()
@@ -254,7 +251,7 @@ VguiFunctions = {
 			dframe.Prompt = vgui.Create("DTextEntry",dframe)
 			dframe.Prompt:SetPos(8,30)
 			dframe.Prompt:SetSize(85,20)
-			dframe.Prompt:SetText(self:GetParent():GetParent().lblTitle:GetValue())
+			dframe.Prompt:SetText(dframe.owner.lblTitle:GetValue())
 			dframe.Prompt:SetEditable(true)
 			dframe.Prompt:SetMultiline(false)
 			dframe.Prompt:RequestFocus()
@@ -276,9 +273,9 @@ VguiFunctions = {
 			end
 				
 		end,
-	["SetText"] = function(self)
+	["Text"] = function(self)
 			local dframe = vgui.Create("DFrame")
-			dframe.owner = self:GetParent():GetParent()
+			dframe.owner = self:GetParent():GetParent():GetParent()
 			dframe:SetSize(140,60)
 			dframe:MakePopup()
 			dframe:Center()
@@ -293,7 +290,7 @@ VguiFunctions = {
 			dframe.Prompt = vgui.Create("DTextEntry",dframe)
 			dframe.Prompt:SetPos(8,30)
 			dframe.Prompt:SetSize(85,20)
-			dframe.Prompt:SetText(self:GetParent():GetParent():GetValue())
+			dframe.Prompt:SetText(dframe.owner:GetValue())
 			dframe.Prompt:SetEditable(true)
 			dframe.Prompt:SetMultiline(false)
 			dframe.Prompt:RequestFocus()
@@ -317,46 +314,51 @@ VguiFunctions = {
 		end,
 	["Delete"] = function(self)
 			self = self:GetParent():GetParent()
-			if self.Derma.ClassName~="DFrame" then
-				self:GetParent().DChildren[self]=nil
+			if self.ClassName=="DFrame" or self.Derma.ClassName=="DFrame" then
+				self:Close()
+				return
 			end
+			self:GetParent().DChildren[self]=nil
 			self:Remove()
 		end,
 	["Duplicate"] = function(self)
 			DupeDerma(self):GetParent()
 		end,
 	["CenterX"] = function(self)
-			self:GetParent():GetParent():CenterHorizontal()
+			self:GetParent():GetParent():GetParent():CenterHorizontal()
 		end,
 	["CenterY"] = function(self)
-			self:GetParent():GetParent():CenterVertical()
+			self:GetParent():GetParent():GetParent():CenterVertical()
 		end,
-	["Add Button"] = function(self)
-			CreateObject(self,"DButton")
+	["Center"] = function(self)
+			self:GetParent():GetParent():GetParent():Center()
 		end,
-	["Add Label"] = function(self)
-			CreateObject(self,"DLabel"):SetMouseInputEnabled(true)
+	["Button"] = function(self)
+			CreateObject(self:GetParent(),"DButton")
+		end,
+	["Label"] = function(self)
+			CreateObject(self:GetParent(),"DLabel"):SetMouseInputEnabled(true)
 		end,
 	["Resize to Contents"] = function(self)
 			self = self:GetParent():GetParent()
 			self:SizeToContents()
 			self:SetSize(self:GetWide()+10,self:GetTall()+10)
 		end,
-	["Add CheckBox"] = function(self)
-			CreateObject(self,"DCheckBox"):SetValue(false)
+	["CheckBox"] = function(self)
+			CreateObject(self:GetParent(),"DCheckBox"):SetValue(false)
 		end,
 	["Toggle"] = function(self)
 			self:GetParent():GetParent():Toggle()
 		end,
-	["Add Collapsible"] = function(self)
-			local Col = CreateObject(self,"DCollapsibleCategory")
+	["Collapsible"] = function(self)
+			local Col = CreateObject(self:GetParent(),"DCollapsibleCategory")
 			//Col:SetSize(50,50)
 		end,
-	["Add ListView"] = function(self)
-			local list = CreateObject(self,"DListView")
+	["ListView"] = function(self)
+			local list = CreateObject(self:GetParent(),"DListView")
 			list:SetSize(list:GetWide(),list:GetTall()+20)
 		end,
-	["Add Column"] = function(self)
+	["Column"] = function(self)
 			self = self:GetParent():GetParent()
 			local column = self:AddColumn("None")
 			column.OnMousePressed = function(self,type)
@@ -369,9 +371,9 @@ VguiFunctions = {
 		end,
 }
 
-function OnClick(self,type)
-	if !type then return end
-	if type==107 then
+function OnClick(self,ctype)
+	if !ctype then return end
+	if ctype==107 then
 		if ( !self.GetDraggable or !self:GetDraggable() ) then return end
 		self.Dragging = { gui.MouseX() - self.x, gui.MouseY() - self.y }
 		self:MouseCapture( true )
@@ -387,8 +389,17 @@ function OnClick(self,type)
 	self.Menu.PanelX = self.x
 	self.Menu.PanelY = self.y
 	for _,v in pairs(VguiOptions[self.ClassName])do
-		self.Menu:AddOption(v,VguiFunctions[v])
+		if type(v)=="table" then
+			local subMenu = self.Menu:AddSubMenu(v.Name)
+			for _,o in ipairs(v)do
+				subMenu:AddOption(o,VguiFunctions[o])
+			end
+		else
+			self.Menu:AddOption(v,VguiFunctions[v])
+		end
 	end
+
+	//Print(self.Menu:GetTable())
 	self.Menu:Open()
 end
 
@@ -407,6 +418,13 @@ function openVgui(player,command,args)
 	panel:MakePopup()
 	panel:SetTitle("Lua Editor")
 	panel:SetSize(ScrW(),50)
+	panel.Close2 = panel.Close
+	panel.Close = function(self)
+		for _,v in pairs(VguiList.DFrame)do
+			v:Close()
+		end
+		self:Close2()
+	end
 
 	local CheckBox = vgui.Create("DCheckBoxLabel", panel)
 	CheckBox:SetPos(100,30)
@@ -446,16 +464,17 @@ function openVgui(player,command,args)
 	Button.DoClick = function(self)
 
 		local dframe = vgui.Create("DFrame")
-		if #VguiList.DFrame then
-			VguiList.DFrame[#VguiList.DFrame+1] = dframe
-		else
-			VguiList.DFrame[1] = dframe
-		end
+		VguiList.DFrame[dframe] = dframe
 		dframe:SetSize(300,300)
 		dframe:SetSizable(false)
 		dframe:MakePopup()
 		dframe:Center()
 		dframe:ShowCloseButton(false)
+		dframe.Close2 = dframe.Close
+		dframe.Close = function(self)
+			VguiList.DFrame[dframe] = nil
+			self:Close2()
+		end
 		/*
 		for k,v in pairs(file.Find("../lua/vgui/*"))do
 			Print("lua/"..string.Left(v,string.len(v)-4)..".txt")
