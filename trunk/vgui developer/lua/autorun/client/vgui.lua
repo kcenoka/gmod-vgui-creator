@@ -314,7 +314,7 @@ VguiFunctions = {
 			self:SetSize(self:GetWide()+10,self:GetTall()+10)
 		end,
 	["Add CheckBox"] = function(self)
-			CreateObject(self,"DCheckBox")
+			CreateObject(self,"DCheckBox"):SetValue(false)
 		end,
 	["Toggle"] = function(self)
 			self:GetParent():GetParent():Toggle()
