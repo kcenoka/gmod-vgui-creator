@@ -10,7 +10,7 @@ VguiOptions = {
 	DFrame = {{Name="Set","Size","Position","Title"},"Delete","Save",{Name="Center","CenterX","CenterY","Center"},{Name="Add","Button","Label","CheckBox","Number Slider","Collapsible"}},	//,"ListView","PanelList"}},
 	DButton = {{Name="Set","Size","Position","Text"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Resize to Contents"},
 	DCheckBox = {{Name="Set","Size","Position","Toggle"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"}},
-	DNumSlider = {{Name="Set","Size","Position","Text","Max Min"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Resize to Contents"},
+	DNumSlider = {{Name="Set","Size","Position","Text","Max Min","Decimals"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Resize to Contents"},
 	DLabel = {{Name="Set","Size","Position","Text"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Resize to Contents"},
 	DListView = {{Name="Set","Size","Position"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Add Column"},
 	DCollapsibleCategory = {{Name="Set","Size","Position","Toggle","Title","Padding"},"Delete",{Name="Center","CenterX","CenterY","Center"},{Name="Contents","Button"}},	//,"PanelList"}},
@@ -228,6 +228,8 @@ VguiFunctions = {
 					text = text..class..":SetValue("..tostring(v:GetChecked())..")\r\n\r\n"
 				elseif class=="DLabel" then
 					text = text..class..":SetText('"..v:GetValue().."')\r\n\r\n"
+				elseif class=="DNumSlider" then
+					text = text..class..":SetText('"..v.Label:GetValue().."')\r\n"..class..":SetMinMax("..v.Wang.m_numMin..", "..v.Wang.m_numMax..")\r\n"..class..":SetValue("..v:GetValue()..")\r\n"..class..":SetDecimals("..v:GetDecimals()..")\r\n"..class..":PerformLayout()\r\n\r\n"
 				end
 			end
 		end
@@ -314,7 +316,9 @@ VguiFunctions = {
 		CreateObject(self:GetParent(),"DLabel"):SetMouseInputEnabled(true)
 	end,
 	["Number Slider"] = function(self)
-		CreateObject(self:GetParent(),"DNumSlider"):SetSize(100,35)
+		local pan = CreateObject(self:GetParent(),"DNumSlider")
+		pan:SetSize(100,35)
+		pan:PerformLayout()
 	end,
 	["Resize to Contents"] = function(self)
 		self = self:GetParent():GetParent()
@@ -375,7 +379,7 @@ VguiFunctions = {
 	end,
 	["Max Min"] = function(self)
 		self = self:GetParent():GetParent():GetParent()
-		local data = {Title = "Reposition"}
+		local data = {Title = "Set Max and Min"}
 		data.Prompt = { {Text=function(pan) return (pan.Wang.m_numMin or 0) end, Label="Min:"},
 			{Text=function(pan) return (pan.Wang.m_numMax or 0) end, Label="Max:"}
 		}
@@ -390,6 +394,19 @@ VguiFunctions = {
 				self.owner:SetValue(max)
 			end
 			self.owner:PerformLayout()
+		end }
+		QueryPrompt(self,data)
+	end,
+	["Decimals"] = function(self)
+		self = self:GetParent():GetParent():GetParent()
+		local data = {Title = "Set Decimals"}
+		data.Prompt = { {Text=function(pan) return pan:GetDecimals() end} }
+		data.Ok = { Text = "Set", Func = function(self)
+			self = self:GetParent()
+			local dec = self.Prompt1:GetValue()
+			dec = dec - dec % 1
+			if dec<0 then dec = -dec end
+			self.owner:SetDecimals(dec)
 		end }
 		QueryPrompt(self,data)
 	end,
