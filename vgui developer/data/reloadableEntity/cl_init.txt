@@ -1,0 +1,16 @@
+function ENT:Initialize()
+	self:SetColor(150,150,255,200)
+	self:SetMaterial("models/debug/debugwhite")
+	self:SetModelScale(Vector(0.5,0.5,0.5))
+end
+
+function ENT:Draw()
+	self.Entity:DrawModel()
+	render.SetMaterial(Material("models/roller/rollermine_glow"))
+	local facing = (LocalPlayer():EyePos()-self:GetPos()):GetNormal()
+	render.DrawQuadEasy( self:GetPos(),
+		facing,
+		36, 36,
+		Color( 255,255,255,0 )
+	) 
+end
