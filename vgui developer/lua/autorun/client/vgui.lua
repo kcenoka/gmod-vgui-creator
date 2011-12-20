@@ -1,5 +1,5 @@
 local currentFrame,VguiList,VguiOptions,VguiFunctions,OnClick,OnGetFocus,CreateObject,DupeDerma,CollapseContents,GiveClickability,CollapsibleOptions,QueryPrompt
-local SaveFile = "filename"
+local SaveFile = "newGUI"
 local dupe_xoff = CreateClientConVar("vgui_creator_xoff", "10", true, false)
 local dupe_yoff = CreateClientConVar("vgui_creator_yoff", "10", true, false)
 local Clamp = CreateClientConVar("vgui_creator_Clamp", "1", true, false)
@@ -7,13 +7,14 @@ VguiList = {
 	DFrame = {}
 }
 VguiOptions = {
-	DFrame = {{Name="Set","Size","Position","Title"},"Delete","Save",{Name="Center","CenterX","CenterY","Center"},{Name="Add","Button","Label","CheckBox","Number Slider","Collapsible"}},	//,"ListView","PanelList"}},
+	DFrame = {{Name="Set","Size","Position","Title"},"Delete","Save",{Name="Center","CenterX","CenterY","Center"},{Name="Add","Button","Label","CheckBox","CheckBoxLabel","Number Slider"}},--,"Collapsible","ListView","PanelList"}},
 	DButton = {{Name="Set","Size","Position","Text"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Resize to Contents"},
 	DCheckBox = {{Name="Set","Size","Position","Toggle"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"}},
-	DNumSlider = {{Name="Set","Size","Position","Text","Max Min","Decimals"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Resize to Contents"},
+	DCheckBoxLabel = {{Name="Set","Size","Position","Text","Toggle"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"}},
+	DNumSlider = {{Name="Set","Size","Position","Text","Min and Max","Decimals"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Resize to Contents"},
 	DLabel = {{Name="Set","Size","Position","Text"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Resize to Contents"},
 	DListView = {{Name="Set","Size","Position"},"Delete","Duplicate",{Name="Center","CenterX","CenterY","Center"},"Add Column"},
-	DCollapsibleCategory = {{Name="Set","Size","Position","Toggle","Title","Padding"},"Delete",{Name="Center","CenterX","CenterY","Center"},{Name="Contents","Button"}},	//,"PanelList"}},
+	DCollapsibleCategory = {{Name="Set","Size","Position","Toggle","Title","Padding"},"Delete",{Name="Center","CenterX","CenterY","Center"}},--,"PanelList"},
 }
 CollapsibleOptions = {
 	DFrame = {{Name="Set","Size","Title"},"Delete","Save",{Name="Add","Button","Label","CheckBox","Collapsible","ListView","PanelList"}},
@@ -22,10 +23,10 @@ CollapsibleOptions = {
 	DLabel = {{Name="Set","Size","Text"},"Delete"},
 	DListView = {{Name="Set","Size"},"Delete","Add Column"},
 }
+local Query
 
 DupeDerma = function(self)
 	local oldself = self
-	self = self:GetParent():GetParent()
 	local class = self.ClassName
 	if !class then
 		class = self.Derma.ClassName
@@ -46,7 +47,7 @@ DupeDerma = function(self)
 end
 
 OnGetFocus = function(self)
-	self = self:GetParent()
+	self = self:GetParent():GetParent()
 	if !self.Think2 and self.Think then self.Think2 = self.Think end
 	self.Think = function(self)
 		if(!self:IsActive())then
@@ -94,107 +95,193 @@ function GiveClickability(self,nodrag)
 end
 
 function CreateObject(self,type,dupe)
-	local oldself = self
 	self = self:GetParent():GetParent()
+	local oldself = self
+	self = self:GetParent()
 	if dupe then self = self:GetParent() end
 	if !self.DChildren then self.DChildren = {} end
 	local index = vgui.Create(type,self)
 	self.DChildren[index] = index
-	local Panel = oldself:GetParent()
+	local Panel = oldself
 	index:SetPos(Panel.XClick-Panel.PanelX,Panel.YClick-Panel.PanelY)
 	GiveClickability(index)
+	if type == "DCheckBoxLabel" then
+		index:SetText("Label")
+		index.Label.OnMousePressed = function(self,type)
+			self = self:GetParent()
+			self.OnMousePressed(self,type)
+		end
+		index.Label.OnMouseReleased = function(self)
+			self = self:GetParent()
+			self.OnMouseReleased(self)
+		end
+		index.Button.OnMousePressed = function(self,type)
+			self = self:GetParent()
+			self.OnMousePressed(self,type)
+		end
+		index.Button.OnMouseReleased = function(self)
+			self = self:GetParent()
+			self.OnMouseReleased(self)
+		end
+	end
 	return index
 end
 
 function QueryPrompt(owner, data)
-	local dframe = vgui.Create("DFrame")
-	dframe.owner = owner
-	dframe:MakePopup()
-	dframe:Center()
-	dframe:ShowCloseButton(true)
-	dframe:SetDraggable(true)
-	dframe:SetTitle(data.Title)
-	dframe.Paint = function(self)
+	Query = vgui.Create("DFrame")
+	Query.owner = owner
+	Query:MakePopup()
+	Query:ShowCloseButton(true)
+	Query:SetDraggable(true)
+	Query:SetTitle(data.Title)
+	Query.Paint = function(self)
 		surface.SetDrawColor( 80, 80, 80, 255 )
 		surface.DrawRect( 0, 0, self:GetWide(),self:GetTall() )
 	end
 
 	local total = -1
+	local pan
+	local labelLen = 0
+	local labelWidth
 	for k,v in pairs(data.Prompt) do
-		total = total+1
-		dframe["Prompt"..k] = vgui.Create("DTextEntry",dframe)
-		if !v.Label then
-			dframe["Prompt"..k]:SetPos(8,30*k)
-			dframe["Prompt"..k]:SetSize(85,20)
-		else
-			dframe["Prompt"..k]:SetPos(17,30*k)
-			dframe["Prompt"..k]:SetSize(75,20)
-			label = vgui.Create("DLabel",dframe)
-			label:SetPos(5,30*k)
-			label:SetText(v.Label)
-		end
-		dframe["Prompt"..k]:SetText(v.Text(dframe.owner))
-		dframe["Prompt"..k]:SetEditable(true)
-		dframe["Prompt"..k]:SetMultiline(false)
-		if k==1 then dframe["Prompt"..k]:RequestFocus() end
-		dframe["Prompt"..k].OnGetFocus = OnGetFocus
-		dframe["Prompt"..k].OnKeyCodeTyped = function(self,key)
-			if key==64 then
-				self:GetParent().Ok:DoClick()
+		if v.Label then
+			labelWidth = surface.GetTextSize(v.Label)
+			print(labelWidth)
+			if labelWidth > labelLen then
+				labelLen = labelWidth
 			end
 		end
 	end
+	if labelLen > 0 then
+		labelLen = labelLen - 10
+	end
+	for k,v in pairs(data.Prompt) do
+		total = total+1
+		pan = vgui.Create("DTextEntry",Query)
+		if not v.Label then
+			pan:SetPos(8,30*k)
+			pan:SetSize(85,20)
+		else
+			pan:SetPos(17+labelLen,30*k)
+			pan:SetSize(75,20)
+			label = vgui.Create("DLabel",Query)
+			label:SetPos(5,30*k)
+			label:SetText(v.Label)
+		end
+		pan:SetText(v.Text(Query.owner))
+		pan.default = pan:GetText()
+		pan:SetEditable(true)
+		pan:SetMultiline(false)
+		if k==1 then pan:RequestFocus() end
+		pan.OnGetFocus = OnGetFocus
+		pan.OnKeyCodeTyped = function(self,key)
+			if key==64 then
+				self:GetParent().Ok:DoClick()
+			elseif key==67 then
+				return false
+			end
+		end
+		Query["Prompt"..k] = pan
+	end
 
-	dframe.Ok = vgui.Create("DButton",dframe)
-	dframe.Ok:SetSize(40,20+(total*30))
-	dframe.Ok:SetText(data.Ok.Text)
-	dframe.Ok:SetPos(95,30)
-	dframe.Ok.DoClick = data.Ok.Func
-
-	dframe:SetSize(140,60+30*total)
+	Query.Ok = vgui.Create("DButton",Query)
+	Query.Ok:SetSize(40,20+(total*30))
+	Query.Ok:SetText(data.Ok.Text)
+	Query.Ok:SetPos(95+labelLen,30)
+	Query.Ok.DoClick = data.Ok.Func
+	Query:SetSize(140+labelLen,60+30*total)
+	local qWidth,qHeight = Query:GetSize()
+	Query:SetPos(gui.MouseX() - qWidth/2, gui.MouseY() - qHeight/2)
+	Query.Close2 = Query.Close
+	Query.Close = function(self)
+		Query = nil
+		self:Close2()
+	end
 end
 
 VguiFunctions = {
 	["Size"] = function(self)
-		self = self:GetParent():GetParent():GetParent()
+		self = self:GetParent():GetParent():GetParent():GetParent()
 		local data = {Title = "Resize"}
-		data.Prompt = { {Text=function(pan) return pan:GetWide() end, Label="X:"},
-			{Text=function(pan) return pan:GetTall() end, Label="Y:"}
+		data.Prompt = { {Text=function(pan) return pan:GetWide() end, Label="Width:"},
+			{Text=function(pan) return pan:GetTall() end, Label="Height:"}
 		}
 		data.Ok = { Text = "Set"}
 		if self:GetParent():IsValid() and self:GetParent().ClassName=="DCollapsibleCategory" then
 			data.Ok.Func = function(self)
 				self = self:GetParent()
 				local x,y = tonumber(self.Prompt1:GetValue()),tonumber(self.Prompt2:GetValue())
-				if x<10 then x=10 end
-				if y<10 then y=10 end
+				if not x then
+					x = self.Prompt1.default
+					self.Prompt1:SetValue(x)
+				elseif x<10 then
+					x=10
+					self.Prompt1:SetValue(x)
+				end
+				if not y then
+					y = self.Prompt2.default
+					self.Prompt2:SetValue(y)
+				elseif y<10 then
+					y=10
+					self.Prompt2:SetValue(y)
+				end
 				self.owner:GetParent():SetWide(x)
 				self.owner:SetTall(y)
 				self.owner:GetParent():InvalidateLayout()
+				self.Prompt1.default = x
+				self.Prompt2.default = y
 			end
 		elseif self.ClassName=="DCollapsibleCategory" and self.Contents and self.Contents:IsValid() then
 			data.Ok.Func = function(self)
 				self = self:GetParent()
 				local x,y = tonumber(self.Prompt1:GetValue()),tonumber(self.Prompt2:GetValue())
-				if x<10 then x=10 end
-				if y<10 then y=10 end
+				if not x then
+					x = self.Prompt1.default
+					self.Prompt1:SetValue(x)
+				elseif x<10 then
+					x=10
+					self.Prompt1:SetValue(x)
+				end
+				if not y then
+					y = self.Prompt2.default
+					self.Prompt2:SetValue(y)
+				elseif y<10 then
+					y=10
+					self.Prompt2:SetValue(y)
+				end
 				self.owner:SetWide(x)
 				self.owner.Contents:SetTall(y-22)
 				self.owner:InvalidateLayout()
+				self.Prompt1.default = x
+				self.Prompt2.default = y
 			end
 		else
 			data.Ok.Func = function(self)
 				self = self:GetParent()
 				local x,y = tonumber(self.Prompt1:GetValue()),tonumber(self.Prompt2:GetValue())
-				if x<10 then x=10 end
-				if y<10 then y=10 end
+				if not x then
+					x = self.Prompt1.default
+					self.Prompt1:SetValue(x)
+				elseif x<10 then
+					x=10
+					self.Prompt1:SetValue(x)
+				end
+				if not y then
+					y = self.Prompt2.default
+					self.Prompt2:SetValue(y)
+				elseif y<10 then
+					y=10
+					self.Prompt2:SetValue(y)
+				end
 				self.owner:SetSize(x,y)
+				self.Prompt1.default = x
+				self.Prompt2.default = y
 			end
 		end
 		QueryPrompt(self,data)
 	end,
 	["Position"] = function(self)
-		self = self:GetParent():GetParent():GetParent()
+		self = self:GetParent():GetParent():GetParent():GetParent()
 		local data = {Title = "Reposition"}
 		data.Prompt = { {Text=function(pan) return pan.x end, Label="X:"},
 			{Text=function(pan) return pan.y end, Label="Y:"}
@@ -202,17 +289,29 @@ VguiFunctions = {
 		data.Ok = { Text = "Set", Func = function(self)
 			self = self:GetParent()
 			local x,y = tonumber(self.Prompt1:GetValue()),tonumber(self.Prompt2:GetValue())
+			if not x then
+				x = self.Prompt1.default
+				self.Prompt1:SetValue(x)
+			end
+			if not y then
+				y = self.Prompt2.default
+				self.Prompt2:SetValue(y)
+			end
 			if Clamp:GetBool() then
 				x = math.Clamp( x, 0, self:GetParent():GetWide() - self:GetWide() )
 				y = math.Clamp( y, 0, self:GetParent():GetTall() - self:GetTall() )
+				self.Prompt1:SetValue(x)
+				self.Prompt2:SetValue(y)
 			end
 			self.owner:SetPos(x,y)
+			self.Prompt1.default = x
+			self.Prompt2.default = y
 		end }
 		QueryPrompt(self,data)
 	end,
 	["Save"] = function(self)
-		self = self:GetParent():GetParent()
-		local text = "local DFrame = vgui.Create('DFrame')\r\nDFrame:SetPos("..self.x..","..self.y..")\r\nDFrame:SetSize("..self:GetWide()..","..self:GetTall()..")\r\nDFrame:SetTitle('"..self.lblTitle:GetValue().."')\r\nDFrame:ShowCloseButton(true)\r\n\r\n"
+		self = self:GetParent():GetParent():GetParent()
+		local text = "local MasterDFrame = vgui.Create('DFrame')\r\nMasterDFrame:SetPos("..self.x..","..self.y..")\r\nMasterDFrame:SetSize("..self:GetWide()..","..self:GetTall()..")\r\nMasterDFrame:SetTitle('"..self.lblTitle:GetText().."')\r\nMasterDFrame:ShowCloseButton(true)\r\n\r\n"
 		local class
 		if self.DChildren then
 			for _,v in pairs(self.DChildren)do
@@ -226,6 +325,8 @@ VguiFunctions = {
 					text = text..class..":SetText('"..v:GetValue().."')\r\n\r\n"
 				elseif class=="DCheckBox" then
 					text = text..class..":SetValue("..tostring(v:GetChecked())..")\r\n\r\n"
+				elseif class=="DCheckBoxLabel" then
+					text = text..class..":SetText('"..v.Label:GetValue().."')\r\n"..class..":SetValue("..tostring(v:GetChecked())..")\r\n\r\n"
 				elseif class=="DLabel" then
 					text = text..class..":SetText('"..v:GetValue().."')\r\n\r\n"
 				elseif class=="DNumSlider" then
@@ -233,13 +334,14 @@ VguiFunctions = {
 				end
 			end
 		end
+		text = text.."MasterDFrame:MakePopup()"
 		local filen = SaveFile
 		filen=string.gsub(filen,"%p","_")
 		if string.Right(filen,4)!=".txt" then filen=filen..".txt" end
 		file.Write("vguicreator/"..filen,text)
 	end,
 	["Title"] = function(self)
-		self = self:GetParent():GetParent():GetParent()
+		self = self:GetParent():GetParent():GetParent():GetParent()
 		local data = {Title = "Set Title"}
 		data.Ok = { Text = "Set"}
 		if self.ClassName=="DCollapsibleCategory" then
@@ -250,7 +352,7 @@ VguiFunctions = {
 				self.owner.Header:SetText(text)
 			end
 		else
-			data.Prompt = { {Text=function(pan) return pan.lblTitle:GetValue() end} }
+			data.Prompt = { {Text=function(pan) return pan.lblTitle:GetText() end} }
 			data.Ok.Func = function(self)
 				self = self:GetParent()
 				local text = self.Prompt1:GetValue()
@@ -260,10 +362,10 @@ VguiFunctions = {
 		QueryPrompt(self,data)
 	end,
 	["Text"] = function(self)
-		self = self:GetParent():GetParent():GetParent()
+		self = self:GetParent():GetParent():GetParent():GetParent()
 		local data = {Title = "Set Text"}
 		data.Ok = { Text = "Set"}
-		if self.ClassName == "DNumSlider" then
+		if self.ClassName == "DNumSlider" or self.ClassName == "DCheckBoxLabel" then
 			data.Prompt = { {Text=function(pan) return pan.Label:GetValue() end} }
 		else
 			data.Prompt = { {Text=function(pan) return pan:GetValue() end} }
@@ -276,7 +378,7 @@ VguiFunctions = {
 		QueryPrompt(self,data)
 	end,
 	["Delete"] = function(self)
-		self = self:GetParent():GetParent()
+		self = self:GetParent():GetParent():GetParent()
 		if self.ClassName=="DFrame" or self.Derma.ClassName=="DFrame" then
 			self:Close()
 			return
@@ -290,16 +392,16 @@ VguiFunctions = {
 		self:Remove()
 	end,
 	["Duplicate"] = function(self)
-		DupeDerma(self):GetParent()
+		DupeDerma(self:GetParent():GetParent():GetParent())
 	end,
 	["CenterX"] = function(self)
-		self:GetParent():GetParent():GetParent():CenterHorizontal()
+		self:GetParent():GetParent():GetParent():GetParent():CenterHorizontal()
 	end,
 	["CenterY"] = function(self)
-		self:GetParent():GetParent():GetParent():CenterVertical()
+		self:GetParent():GetParent():GetParent():GetParent():CenterVertical()
 	end,
 	["Center"] = function(self)
-		self:GetParent():GetParent():GetParent():Center()
+		self:GetParent():GetParent():GetParent():GetParent():Center()
 	end,
 	["Button"] = function(self)
 		local oldself = self
@@ -321,15 +423,18 @@ VguiFunctions = {
 		pan:PerformLayout()
 	end,
 	["Resize to Contents"] = function(self)
-		self = self:GetParent():GetParent()
+		self = self:GetParent():GetParent():GetParent()
 		self:SizeToContents()
 		self:SetSize(self:GetWide()+10,self:GetTall()+10)
 	end,
 	["CheckBox"] = function(self)
 		CreateObject(self:GetParent(),"DCheckBox"):SetValue(false)
 	end,
+	["CheckBoxLabel"] = function(self)
+		CreateObject(self:GetParent(),"DCheckBoxLabel"):SetValue(false)
+	end,
 	["Toggle"] = function(self)
-		self:GetParent():GetParent():GetParent():Toggle()
+		self:GetParent():GetParent():GetParent():GetParent():Toggle()
 	end,
 	["Collapsible"] = function(self)
 		local col = CreateObject(self:GetParent(),"DCollapsibleCategory")
@@ -356,7 +461,7 @@ VguiFunctions = {
 		end
 	end,
 	["Add Column"] = function(self)
-		self = self:GetParent():GetParent()
+		self = self:GetParent():GetParent():GetParent()
 		local column = self:AddColumn("None")
 		column.OnMousePressed = function(self,type)
 			if !type then return end
@@ -367,26 +472,48 @@ VguiFunctions = {
 		end
 	end,
 	["Padding"] = function(self)
-		self = self:GetParent():GetParent():GetParent()
+		self = self:GetParent():GetParent():GetParent():GetParent()
 		local data = {Title = "Set Padding"}
 		data.Prompt = { {Text=function(pan) return (pan:GetPadding() or 0) end} }
 		data.Ok = { Text = "Set", Func = function(self)
 			self = self:GetParent()
-			self.owner:SetPadding(self.Prompt1:GetValue())
+			local padding = tonumber(self.Prompt1:GetValue())
+			if not padding then
+				padding = self.Prompt1.default
+			else
+				self.Prompt1.default = padding
+			end
+			self.owner:SetPadding(padding)
 			self.owner:InvalidateLayout()
 		end }
 		QueryPrompt(self,data)
 	end,
-	["Max Min"] = function(self)
-		self = self:GetParent():GetParent():GetParent()
-		local data = {Title = "Set Max and Min"}
+	["Min and Max"] = function(self)
+		self = self:GetParent():GetParent():GetParent():GetParent()
+		local data = {Title = "Set Min and Max"}
 		data.Prompt = { {Text=function(pan) return (pan.Wang.m_numMin or 0) end, Label="Min:"},
 			{Text=function(pan) return (pan.Wang.m_numMax or 0) end, Label="Max:"}
 		}
 		data.Ok = { Text = "Set", Func = function(self)
 			self = self:GetParent()
 			local min,max = tonumber(self.Prompt1:GetValue()), tonumber(self.Prompt2:GetValue())
-			if min>max then Print("Bad") return end
+			if not min then
+				min = tonumber(self.Prompt1.default)
+				self.Prompt1:SetValue(min)
+			end
+			if not max then
+				max = tonumber(self.Prompt2.default)
+				self.Prompt2:SetValue(max)
+			end
+			if min>max or min == max then
+				min = self.Prompt1.default
+				max = self.Prompt2.default
+				self.Prompt1:SetValue(min)
+				self.Prompt2:SetValue(max)
+			else
+				self.Prompt1.default = min
+				self.Prompt2.default = max
+			end
 			self.owner:SetMinMax(min,max)
 			if self.owner:GetValue()<min then
 				self.owner:SetValue(min)
@@ -398,7 +525,7 @@ VguiFunctions = {
 		QueryPrompt(self,data)
 	end,
 	["Decimals"] = function(self)
-		self = self:GetParent():GetParent():GetParent()
+		self = self:GetParent():GetParent():GetParent():GetParent()
 		local data = {Title = "Set Decimals"}
 		data.Prompt = { {Text=function(pan) return pan:GetDecimals() end} }
 		data.Ok = { Text = "Set", Func = function(self)
@@ -413,6 +540,9 @@ VguiFunctions = {
 }
 
 function OnClick(self,ctype)
+	if Query then
+		Query:Close()
+	end
 	if !ctype then return end
 	if ctype==107 then
 		if ( !self.GetDraggable or !self:GetDraggable() ) then return end
@@ -455,7 +585,7 @@ function openVgui(player,command,args)
 	if panel && type(panel)=="Panel" && panel:IsValid() then
 		panel:Close()
 	end
-	// Panel to hold everything
+	-- Panel to hold everything
 	panel = vgui.Create("DFrame")
 	panel:SetVisible(true)
 	panel:SetDraggable(false)
@@ -470,6 +600,9 @@ function openVgui(player,command,args)
 		for _,v in pairs(VguiList.DFrame)do
 			v:Close()
 		end
+		if Query then
+			Query:Close()
+		end
 		self:Close2()
 	end
 
@@ -477,7 +610,7 @@ function openVgui(player,command,args)
 	CheckBox:SetPos(100,30)
 	CheckBox:SetText("Clamp")
 	CheckBox:SetValue(Clamp:GetBool())
-	CheckBox:SetConVar( "vgui_creator_Clamp" )
+	CheckBox:SetConVar("vgui_creator_Clamp")
 
 	local Text = vgui.Create("DTextEntry",panel)
 	Text:SetPos(180,26)
@@ -487,27 +620,27 @@ function openVgui(player,command,args)
 		SaveFile=self:GetValue()
 	end
 
-	local slider = vgui.Create( /*"DNumberWang"*/"DNumSlider", panel )
-	slider:SetPos( 300,26 )
-	slider:SetSize( 110, 20 )
-	slider:SetText( "DupeX Offset" )
-	slider:SetMin( -200 )
-	slider:SetMax( 200 )
-	slider:SetDecimals( 0 )
-	slider:SetConVar( "vgui_creator_xoff" )
+	local slider = vgui.Create( --[["DNumberWang"]]"DNumSlider", panel )
+	slider:SetPos(300,26)
+	slider:SetSize(115,20)
+	slider:SetText("DupeX Offset")
+	slider:SetMin(-200)
+	slider:SetMax(200)
+	slider:SetDecimals(0)
+	slider:SetConVar("vgui_creator_xoff")
 
-	local slider = vgui.Create( /*"DNumberWang"*/"DNumSlider", panel )
-	slider:SetPos( 425,26 )
-	slider:SetSize( 110, 20 )
-	slider:SetText( "DupeY Offset" )
-	slider:SetMin( -200 )
-	slider:SetMax( 200 )
-	slider:SetDecimals( 0 )
-	slider:SetConVar( "vgui_creator_yoff" )
+	slider = vgui.Create( --[["DNumberWang"]]"DNumSlider", panel )
+	slider:SetPos(430,26)
+	slider:SetSize(115,20)
+	slider:SetText("DupeY Offset" )
+	slider:SetMin(-200)
+	slider:SetMax(200)
+	slider:SetDecimals(0)
+	slider:SetConVar("vgui_creator_yoff")
 
 	local Button = vgui.Create( "DButton", panel )
 	Button:SetPos(10,25)
-	Button:SetText("Panel")
+	Button:SetText("New Frame")
 	Button.DoClick = function(self)
 
 		local dframe = vgui.Create("DFrame")
@@ -516,20 +649,12 @@ function openVgui(player,command,args)
 		dframe:SetSizable(false)
 		dframe:MakePopup()
 		dframe:Center()
-		dframe:ShowCloseButton(false)
+		dframe:ShowCloseButton(true)
 		dframe.Close2 = dframe.Close
 		dframe.Close = function(self)
 			VguiList.DFrame[dframe] = nil
 			self:Close2()
 		end
-		/*
-		for k,v in pairs(file.Find("../lua/vgui/*"))do
-			Print("lua/"..string.Left(v,string.len(v)-4)..".txt")
-			file.Write("lua/"..string.Left(v,string.len(v)-4)..".txt",file.Read("../lua/vgui/"..v))
-		end
-		file.Write("DCheckBox.txt",file.Read("../lua/vgui/DCheckBox.lua"))
-		Print(dframe)
-		*/
 		dframe.OnMousePressed = OnClick
 	end
 end
